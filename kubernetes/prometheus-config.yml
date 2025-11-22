@@ -1,13 +1,20 @@
-global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: default
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
 
-scrape_configs:
-  - job_name: 'prometheus'
-    static_configs:
-      - targets: ['localhost:9090']
+    scrape_configs:
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
 
-  - job_name: 'mlops-anomalies'
-    static_configs:
-      - targets: ['api:8000']
-    metrics_path: '/metrics'
+      - job_name: 'mlops-anomalies'
+        metrics_path: '/metrics'
+        static_configs:
+          - targets: ['mlops-anomalies-service:8000']
