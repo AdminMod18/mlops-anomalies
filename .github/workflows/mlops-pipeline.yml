@@ -33,12 +33,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
+
       - name: Install linters
         run: pip install flake8 black isort
+
       - name: Run linters
         run: |
           black --check src/ api/ || true
@@ -53,24 +56,32 @@ jobs:
     needs: lint
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
           pip install pytest pytest-cov httpx
+
       - name: Create directories
         run: mkdir -p data/raw data/processed models mlruns plots logs
+
       - name: Generate test data
         run: python -c "from src.utils import generate_synthetic_data; generate_synthetic_data('data/raw/anomaly_data.csv', n_samples=1000)"
+
       - name: Run preprocessing
         run: python src/preprocess.py
+
       - name: Run training
         run: python src/train.py
+
       - name: Run tests
         run: pytest tests/ -v --cov=src --cov=api --cov-report=xml
+
       - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:
@@ -86,14 +97,15 @@ jobs:
     needs: test
     outputs:
       model_version: ${{ steps.version.outputs.version }}
+
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
+
       - name: Install dependencies
         run: pip install -r requirements.txt
 
@@ -135,8 +147,10 @@ jobs:
     name: Build Docker Image
     runs-on: ubuntu-latest
     needs: train
+
     steps:
       - uses: actions/checkout@v4
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -144,6 +158,7 @@ jobs:
           path: ./
 
       - uses: docker/setup-buildx-action@v3
+
       - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -159,34 +174,56 @@ jobs:
             ${{ env.DOCKER_IMAGE }}:latest
 
   # ------------------------------
-  # DEPLOY VALIDATION (KIND)
+  # DEPLOY VALIDATION (KIND FIXED)
   # ------------------------------
   deploy:
     name: Deploy to Kubernetes (Ephemeral CI Cluster)
     runs-on: ubuntu-latest
     needs: [build, train]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main'
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create KIND cluster
-        uses: helm/kind-action@v1.9.0
-        with:
-          cluster_name: mlops-ci
-          version: v1.30.0
+      # Install KIND manually (NO helm/kind-action)
+      - name: Install KIND
+        run: |
+          curl -Lo kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
+          chmod +x kind
+          sudo mv kind /usr/local/bin/
 
-      - name: Update image tag in manifest
+      # Install kubectl
+      - name: Install kubectl
+        run: |
+          curl -LO "https://storage.googleapis.com/kubernetes-release/release/v1.30.0/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+
+      # Create cluster
+      - name: Create KIND cluster
+        run: |
+          kind create cluster --name mlops-ci --image kindest/node:v1.30.0
+
+      # Load Docker image
+      - name: Load image into KIND
+        run: kind load docker-image adminmod18/mlops-anomalies:latest --name mlops-ci
+
+      # Update manifest image tag
+      - name: Update image tag
         run: |
           sed -i 's|image: adminmod18/mlops-anomalies:.*|image: adminmod18/mlops-anomalies:${{ needs.train.outputs.model_version }}|g' kubernetes/deployment.yaml
 
+      # Validate manifests
       - name: Validate manifests
-        run: |
-          kubectl apply --dry-run=client -f kubernetes/configmap.yaml
-          kubectl apply --dry-run=client -f kubernetes/deployment.yaml
-          kubectl apply --dry-run=client -f kubernetes/service.yaml
+        run: kubectl apply --dry-run=client -f kubernetes/
 
-      - name: Apply manifests (test deploy)
+      # Apply manifests
+      - name: Apply manifests
         run: kubectl apply -f kubernetes/
+
+      # Wait for rollout
+      - name: Wait for API deployment
+        run: kubectl rollout status deployment/mlops-anomalies --timeout=120s
 
   # ------------------------------
   # RELEASE
@@ -195,9 +232,10 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     needs: [deploy, train]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: write
+
     steps:
       - uses: actions/checkout@v4
 
