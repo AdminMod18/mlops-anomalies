@@ -1,0 +1,40 @@
+stages:
+  generate_data:
+    cmd: python -c "from src.utils import generate_synthetic_data; generate_synthetic_data('data/raw/anomaly_data.csv', n_samples=10000)"
+    deps:
+      - src/utils.py
+    outs:
+      - data/raw/anomaly_data.csv
+
+  preprocess:
+    cmd: python src/preprocess.py
+    deps:
+      - src/preprocess.py
+      - src/utils.py
+      - data/raw/anomaly_data.csv
+    outs:
+      - data/processed/X_train.npy
+      - data/processed/X_test.npy
+      - data/processed/y_train.npy
+      - data/processed/y_test.npy
+      - data/processed/scaler.joblib
+
+  train:
+    cmd: python src/train.py
+    deps:
+      - src/train.py
+      - src/utils.py
+      - data/processed/X_train.npy
+      - data/processed/X_test.npy
+      - data/processed/y_train.npy
+      - data/processed/y_test.npy
+    outs:
+      - models/isolation_forest_model.joblib
+    metrics:
+      - metrics.json:
+          cache: false
+    plots:
+      - plots/confusion_matrix.png:
+          cache: false
+      - plots/roc_curve.png:
+          cache: false

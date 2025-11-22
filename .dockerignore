@@ -1,0 +1,73 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Testing
+.tox/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Documentation
+docs/_build/
+*.md
+!README.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.log
+logs/
+mlruns/
+plots/
+*.png
+*.json
+!config/*.yaml
+
+# Raw data
+data/raw/
+
+# DVC
+.dvc/
+*.dvc
+
+# Docker
+Dockerfile*
+docker-compose*
+
+# CI/CD
+.github/
+
+# Kubernetes
+kubernetes/
+
+# Scripts
+scripts/
+
+# Tests
+tests/

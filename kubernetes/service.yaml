@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlops-anomalies-service
+  namespace: default
+  labels:
+    app: mlops-anomalies
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
+spec:
+  type: NodePort
+  selector:
+    app: mlops-anomalies
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8000
+      targetPort: 8000
+      nodePort: 30080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlops-anomalies-internal
+  namespace: default
+  labels:
+    app: mlops-anomalies
+spec:
+  type: ClusterIP
+  selector:
+    app: mlops-anomalies
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8000
+      targetPort: 8000

@@ -1,0 +1,68 @@
+# MLOps Anomaly Detection Configuration
+
+data:
+  raw_path: "data/raw"
+  processed_path: "data/processed"
+  raw_filename: "anomaly_data.csv"
+  n_samples: 10000
+  anomaly_ratio: 0.1
+  test_size: 0.2
+  random_state: 42
+
+features:
+  n_features: 10
+  feature_names:
+    - feature_1
+    - feature_2
+    - feature_3
+    - feature_4
+    - feature_5
+    - feature_6
+    - feature_7
+    - feature_8
+    - feature_9
+    - feature_10
+
+model:
+  name: "IsolationForest"
+  output_path: "models"
+  filename: "isolation_forest_model.joblib"
+  params:
+    n_estimators: 100
+    contamination: 0.1
+    max_samples: "auto"
+    random_state: 42
+    n_jobs: -1
+    bootstrap: false
+    max_features: 1.0
+
+mlflow:
+  tracking_uri: "sqlite:///mlruns/mlflow.db"
+  experiment_name: "anomaly_detection"
+  artifact_location: "mlruns/artifacts"
+  registered_model_name: "isolation_forest_anomaly_detector"
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 4
+  reload: false
+  log_level: "info"
+
+monitoring:
+  enable_metrics: true
+  metrics_port: 8000
+  metrics_path: "/metrics"
+
+kubernetes:
+  namespace: "default"
+  replicas: 2
+  min_replicas: 2
+  max_replicas: 10
+  target_cpu_utilization: 70
+  image: "adminmod18/mlops-anomalies:latest"
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/app.log"

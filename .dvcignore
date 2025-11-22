@@ -1,0 +1,16 @@
+# Add patterns of files dvc should ignore
+*.pyc
+__pycache__
+.git
+.gitignore
+*.egg-info
+.eggs
+*.egg
+build
+dist
+.pytest_cache
+.coverage
+htmlcov
+.mypy_cache
+*.log
+.DS_Store
